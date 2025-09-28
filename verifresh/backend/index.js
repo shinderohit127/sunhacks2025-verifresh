@@ -22,6 +22,12 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB file size limit
 });
 
+// === NEW HEALTH CHECK ROUTE ===
+app.get('/health', (req, res) => {
+    console.log("✅ GET /health endpoint was reached successfully!");
+    res.status(200).json({ status: "ok", message: "Server is alive!" });
+});
+
 // === API Routes ===
 
 /**
@@ -30,6 +36,7 @@ const upload = multer({
  * Body: { "productId": number, "name": string, "farmName": string }
  */
 app.post('/products', async (req, res) => {
+    console.log("--- Handler for POST /products has been entered. ---");
     try {
         const { productId, name, farmName } = req.body;
         if (productId === undefined || !name || !farmName) {
@@ -96,7 +103,7 @@ app.get('/products/:id', async (req, res) => {
             return res.status(404).json({ message: "Product not found on the blockchain." });
         }
 
-        const aiInsights = await geminiService.generateProductInsights(productData);
+        const aiInsights = await geminiService.generateMultimodalInsights(productData);
 
         res.json({
             message: "Product data and AI insights fetched successfully.",

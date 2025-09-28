@@ -67,6 +67,7 @@ async function createProduct(productId, name, farmName) {
     );
 
     console.log(`Creating new product with ID ${productId} at PDA: ${pda.toBase58()}`);
+    console.log(`Attempting to send transaction to Solana for product ID: ${productId}`);
 
     // Call the 'createProduct' method on our program object.
     const txSignature = await program.methods
@@ -78,6 +79,7 @@ async function createProduct(productId, name, farmName) {
         })
         .rpc(); // .rpc() sends the transaction to the network.
 
+    console.log(`Transaction sent successfully. Signature: ${txSignature}`);
     return txSignature;
 }
 

@@ -3,7 +3,9 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer'); // For handling multipart/form-data (if needed in future)
 const solanaService = require('./solanaService'); // Import our Solana interaction logic
+const geminiService = require('./geminiService'); // Import our Gemini AI interaction logic
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -14,6 +16,11 @@ app.use(express.json());
 // This allows requests from your frontend.
 app.use(cors());
 
+// Configure Multer to handle a single image file stored in memory
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB file size limit
+});
 
 // === API Routes ===
 
@@ -89,15 +96,55 @@ app.get('/products/:id', async (req, res) => {
             return res.status(404).json({ message: "Product not found on the blockchain." });
         }
 
-        // This is where we will integrate the Gemini AI call in the next step.
+        const aiInsights = await geminiService.generateProductInsights(productData);
 
         res.json({
-            message: "Product data fetched successfully from Solana.",
-            productData
+            message: "Product data and AI insights fetched successfully.",
+            productData,
+            aiInsights
         });
 
     } catch (error) {
         console.error("GET /products/:id Error:", error);
+        res.status(500).json({ message: "Internal server error." });
+    }
+});
+
+// === NEW MULTIMODAL ENDPOINT ===
+/**
+ * POST /products/:id/image
+ * Uploads an image for a product and gets a multimodal AI analysis.
+ * The image should be sent as 'productImage' in a multipart/form-data request.
+ */
+app.post('/products/:id/image', upload.single('productImage'), async (req, res) => {
+    try {
+        const productId = parseInt(req.params.id, 10);
+        if (isNaN(productId)) {
+            return res.status(400).json({ message: "Invalid product ID." });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ message: "No image file uploaded." });
+        }
+
+        // 1. Fetch the product data from Solana
+        const productData = await solanaService.getProduct(productId);
+        if (!productData) {
+            return res.status(404).json({ message: "Product not found on the blockchain." });
+        }
+
+        // 2. Call the new Gemini service function with both text and image data
+        const aiInsights = await geminiService.generateMultimodalInsights(productData, req.file);
+
+        // 3. Send back the combined response
+        res.json({
+            message: "Multimodal AI insights generated successfully.",
+            productData,
+            aiInsights
+        });
+
+    } catch (error) {
+        console.error("POST /products/:id/image Error:", error);
         res.status(500).json({ message: "Internal server error." });
     }
 });

@@ -12,7 +12,7 @@ verifresh = "9nk4tWoxjjMQusH2JAtfnyY56S8oUTST6nVziPVRgd32"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

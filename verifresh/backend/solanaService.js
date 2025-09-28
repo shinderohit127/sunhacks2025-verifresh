@@ -17,15 +17,15 @@ const serverKeypair = Keypair.fromSecretKey(new Uint8Array(secretKeyArray));
 const connection = new Connection(RPC_URL, 'confirmed');
 
 const wallet = {
-  publicKey: serverKeypair.publicKey,
-  signTransaction: async (tx) => {
-    tx.sign(serverKeypair);
-    return tx;
-  },
-  signAllTransactions: async (txs) => {
-    txs.forEach(tx => tx.sign(serverKeypair));
-    return txs;
-  }
+    publicKey: serverKeypair.publicKey,
+    signTransaction: async (tx) => {
+        tx.sign(serverKeypair);
+        return tx;
+    },
+    signAllTransactions: async (txs) => {
+        txs.forEach(tx => tx.sign(serverKeypair));
+        return txs;
+    }
 };
 
 // The AnchorProvider is a crucial wrapper that bundles the connection and wallet,
@@ -118,11 +118,23 @@ async function getProduct(productId) {
             [Buffer.from("product"), new BN(productId).toBuffer('le', 8)],
             program.programId
         );
-        console.log(`Fetching product at PDA: ${pda.toBase58()}`);
+        // console.log(`Fetching product at PDA: ${pda.toBase58()}`);
 
         // Use the .fetch() method to retrieve the account data from the blockchain.
         const productData = await program.account.product.fetch(pda);
-        return productData;
+
+        // Convert all BN objects to standard JavaScript numbers ---
+        const transformedData = {
+            ...productData,
+            id: productData.id.toNumber(),
+            harvestTimestamp: productData.harvestTimestamp.toNumber(),
+            history: productData.history.map(log => ({
+                ...log,
+                timestamp: log.timestamp.toNumber(),
+            })),
+        };
+
+        return transformedData;
     } catch (error) {
         // It's common for fetch to fail if an account with that ID hasn't been created yet.
         // We log the error and return null to handle this gracefully in our API.

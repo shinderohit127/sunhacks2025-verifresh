@@ -29,6 +29,49 @@ function fileToGenerativePart(buffer, mimeType) {
 
 // === Service Functions ===
 
+// === FUNCTION 1: Text-Only Analysis ===
+/**
+ * Generates AI insights using only the product's blockchain data.
+ * @param {object} productData - The product data from Solana.
+ * @returns {object} - The parsed JSON insights from the AI.
+ */
+async function generateProductInsights(productData) {
+    console.log(`Generating TEXT-ONLY AI insights for product: ${productData.name}`);
+
+    const historyLog = productData.history.map(log =>
+        `- At timestamp ${log.timestamp}, status was "${log.status}" at "${log.location}".`
+    ).join('\n');
+
+    const prompt = `
+        You are a supply chain analyst for "VeriFresh".
+        Analyze the provided blockchain data for a product and generate a customer-facing summary.
+        Your output MUST be a valid JSON object with the keys: "freshness_score", "estimated_shelf_life", "quality_assessment", and "transit_anomalies". Do not include any other text or markdown formatting.
+
+        DATA:
+        - Product Name: "${productData.name}" from "${productData.farmName}"
+        - Harvest Timestamp: ${productData.harvestTimestamp}
+        - Current UNIX Timestamp: ${Math.floor(Date.now() / 1000)}
+        - History:
+        ${historyLog}
+    `;
+
+    try {
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        const cleanedJsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(cleanedJsonString);
+    } catch (error) {
+        console.error("Error in generateProductInsights (text-only):", error);
+        return {
+            freshness_score: null,
+            estimated_shelf_life: "N/A",
+            quality_assessment: "Could not generate AI insights at this time.",
+            transit_anomalies: "Unknown",
+        };
+    }
+}
+
 /**
  * Generates AI-powered insights for a given product.
  * @param {object} productData - The product data fetched from the Solana blockchain.
@@ -91,4 +134,5 @@ async function generateMultimodalInsights(productData, imageFile) {
 
 module.exports = {
     generateMultimodalInsights,
+    generateProductInsights
 };
